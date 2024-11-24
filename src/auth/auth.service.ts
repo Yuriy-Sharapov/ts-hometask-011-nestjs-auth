@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { IJwtPayload } from 'src/users/interfaces/jwt.payload';
 import { UsersService } from 'src/users/users.service';
@@ -6,30 +6,34 @@ import { UsersService } from 'src/users/users.service';
 @Injectable()
 export class AuthService {
     constructor(
-        private userService: UsersService,
+        private usersService: UsersService,
         private jwtService: JwtService
     ) {}
 
-    async validateUser(email: string, password: string): Promise<any>{
+    async validateUserByJwt(userId: number): Promise<any>{
 
-        const user = await this.userService.findOne(email)
-        if ( user && user.password === password ){
-            const { password, ...result } = user
-            return result
-        }
-        return null
-    }
-
-    async validateUserJwt(userId: number): Promise<any>{
-
-        const user = await this.userService.findOneById(userId)
+        const user = await this.usersService.findOneById(userId)
         if ( user )
             return user
         
         return null
     }
 
-    createToken(payload: IJwtPayload) {
-        return this.jwtService.sign(payload)  // подписываем с помощью jwt сервиса
+    // При успешной авторизации пользователя запрашиваем JWT-токен и возвращаем его не фронтенд
+    async signIn(email: string, pass: string): Promise<{ access_token: string }> {
+
+        const user = await this.usersService.findOne(email)
+        if (user?.password !== pass) {      // <---- в последствии пароль будет зашифрован через bcrypt
+            throw new UnauthorizedException();
+        }
+
+        const payload: IJwtPayload = {
+            id       : user.id.toString(), 
+            email    : user.email,     
+            firstName: user.firstName  
+        }
+        return {
+            access_token: await this.jwtService.signAsync(payload)
+        }
     }
 }

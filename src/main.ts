@@ -1,14 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import * as dotenv from 'dotenv';
-import * as path from 'path'
+import * as dotenv from 'dotenv'
+dotenv.config()
 
 async function bootstrap() {
 
-  const envPath = path.join(__dirname, '..', '.env')
-  dotenv.config({ path: envPath })
-
-  console.log(`JwtSecretKey = ${process.env.JwtSecretKey}`)
+  console.log(process.env.JwtSecretKey)
 
   const app = await NestFactory.create(AppModule);
   await app.listen(process.env.PORT ?? 3000);

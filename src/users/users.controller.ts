@@ -1,54 +1,49 @@
-import { Body, Controller, Get, Param, Post, UseGuards, Request } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { AuthService } from 'src/auth/auth.service';
 import { IUserDto } from './interfaces/user.dto';
-import { IJwtPayload } from './interfaces/jwt.payload';
 import { ISignupUserDto } from './interfaces/signup.user.dto';
-import { JwtAuthGuard } from 'src/auth/jwt.auth.guard';
+import { ISigninUserDto } from './interfaces/signin.user.dto';
+import { AuthGuard } from 'src/auth/auth.guard';
 
-@Controller('/api/users')
+@Controller('api/users')
 export class UsersController {
 
     constructor(
         private readonly usersService: UsersService,
-        private readonly authService: AuthService) {}
-
-    @Get('/token/:userId')
-    async getToken(@Param() userId: number): Promise<string> {
-    
-        console.log(`===async getToken - userId===`)
-        console.log(userId)
-    
-        let user: IUserDto
-        try {
-        user = await this.usersService.findOneById(userId)
-        }
-        catch(e){
-        console.log(e)
-        return
-        }
-        
-        console.log(`===async getToken - dbuser===`)
-        console.log(user)
-    
-        const jwtPayload: IJwtPayload = {
-        id       : user.id.toString(),        // id пользователя
-        email    : user.email,                // email пользователя
-        firstName: user.firstName             // firstName пользователя      
-        }
-        return this.authService.createToken(jwtPayload)
+        private readonly authService: AuthService
+    ) {
+        // Проверяем, какие пользователи проинициализированы
+        console.log(this.usersService.findAll())        
     }
-    
+
     // Регистрация пользователя
     @Post('/signup')
     async signup(@Body() body: ISignupUserDto): Promise<IUserDto> {
+
+        try {
+            const existUser = await this.usersService.findOne(body.email)
+            console.log(`Пользователь ${existUser.email} уже зарегистрирован`)
+            return null
+        }
+        catch(e) { 
+            // такого пользователя нет. Идем дальше
+        }
+
         return this.usersService.create(body)
     }
     
-    // Аутентификация пользвоателя
-    @UseGuards(JwtAuthGuard)
+    // Аутентификация пользвоателя 
+    @HttpCode(HttpStatus.OK)
     @Post('/signin')
-    async signin(@Request() req: any) {
-        return req.user
+    async signin(@Body() body: ISigninUserDto) {
+        return this.authService.signIn(body.email, body.password);
+    }
+
+    // Профиль пользователя под защитой JWT-токена
+    @UseGuards(AuthGuard)
+    @Get('/profile')
+    getProfile(@Request() req: any) {
+        return req.user;
     }
 }

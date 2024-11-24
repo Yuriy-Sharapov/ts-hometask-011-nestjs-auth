@@ -23,12 +23,16 @@ export class UsersService {
         }        
     ];
 
+    findAll(): IUserDto[] {
+        return this.users
+    }
+
     async findOne(email: string): Promise<IUserDto | undefined> {
         return this.users.find( user => user.email === email)
     }
 
     async findOneById(userId: number): Promise<IUserDto | undefined> {
-        return this.users.find( user => user.id === userId)
+        return this.users.find( user => user.id == userId)
     }
 
     async create(signupUserDto: ISignupUserDto): Promise<IUserDto> {

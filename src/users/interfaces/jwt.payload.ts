@@ -1,4 +1,4 @@
-// Payload для JWT токена
+// Payload (полезная нагрузка) для JWT токена
 
 export interface IJwtPayload{
     id       : string, // id пользователя
